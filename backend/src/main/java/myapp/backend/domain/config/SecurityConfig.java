@@ -36,7 +36,7 @@ public class SecurityConfig {
             )
             .oauth2Login(oauth2 -> oauth2
                 // 로그인 성공 시 프론트엔드(React 등) 주소로 리다이렉트
-                .defaultSuccessUrl("http://localhost:3000", true)
+                // .defaultSuccessUrl("http://localhost:3000", true) // successHandler와 중복되므로 제거
                 .failureUrl("/login?error")
                 .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
                 .successHandler(oAuth2LoginSuccessHandler)

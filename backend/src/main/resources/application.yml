@@ -67,7 +67,7 @@ mybatis:
   mapper-locations: classpath:mapper/**/*.xml
   type-aliases-package: myapp.backend.domain.auth.vo
   configuration:
-    map-underscore-to-camel-case: true
+    map-underscore-to-camel-case: false
 
 server:
   port: 8080

@@ -5,6 +5,7 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import myapp.backend.domain.auth.service.JwtService;
+import myapp.backend.domain.auth.vo.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -36,21 +37,18 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 String snsType = jwtService.extractSnsType(token);
                 String snsId = jwtService.extractSnsId(token);
 
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                        username,
-                        null,
-                        Collections.singletonList(new SimpleGrantedAuthority("ROLE_USER"))
-                );
+                if (username != null && userId != null) {
+                    UserPrincipal userPrincipal = new UserPrincipal(username, userId, snsType, snsId);
 
-                // 추가 정보를 authentication에 저장
-                authentication.setDetails(new HashMap<String, Object>() {{
-                    put("user_id", userId);
-                    put("sns_type", snsType);
-                    put("sns_id", snsId);
-                    put("username", username);
-                }});
+                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                            userPrincipal,
+                            null,
+                            userPrincipal.getAuthorities()
+                    );
+                    
+                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                }
 
-                SecurityContextHolder.getContext().setAuthentication(authentication);
             } catch (Exception e) {
                 logger.error("JWT 토큰 처리 중 오류 발생", e);
             }

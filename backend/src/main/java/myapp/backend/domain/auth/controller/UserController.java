@@ -3,8 +3,10 @@ package myapp.backend.domain.auth.controller;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpSession;
 import myapp.backend.domain.auth.service.JwtService;
+import myapp.backend.domain.auth.vo.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.oauth2.core.user.OAuth2User;
 import org.springframework.web.bind.annotation.*;
@@ -19,13 +21,22 @@ public class UserController {
     @Autowired
     private JwtService jwtService;
 
-    // 기존 세션 기반 사용자 정보 반환 (POST 요청)
+    // JWT, 세션 모두 처리할 수 있도록 개선된 사용자 정보 반환
     @PostMapping("/user")
-    public Map<String, Object> getCurrentUser(Authentication authentication) {
+    public Map<String, Object> getCurrentUser(@AuthenticationPrincipal Object principal) {
         Map<String, Object> userInfo = new HashMap<>();
 
-        if (authentication != null && authentication.getPrincipal() instanceof OAuth2User) {
-            OAuth2User oauth2User = (OAuth2User) authentication.getPrincipal();
+        if (principal instanceof UserPrincipal) {
+            // JWT 토큰으로 인증된 경우
+            UserPrincipal userPrincipal = (UserPrincipal) principal;
+            userInfo.put("user_id", userPrincipal.getUserId());
+            userInfo.put("username", userPrincipal.getUsername());
+            userInfo.put("sns_type", userPrincipal.getSnsType());
+            userInfo.put("sns_id", userPrincipal.getSnsId());
+            userInfo.put("isAuthenticated", true);
+        } else if (principal instanceof OAuth2User) {
+            // OAuth2 로그인 직후 세션으로 인증된 경우
+            OAuth2User oauth2User = (OAuth2User) principal;
             Map<String, Object> attributes = oauth2User.getAttributes();
 
             if (attributes.containsKey("response")) { // 네이버
@@ -47,42 +58,12 @@ public class UserController {
                 userInfo.put("profileImg", attributes.get("picture"));
                 userInfo.put("provider", "google");
             }
+            userInfo.put("username", oauth2User.getAttribute("name"));
             userInfo.put("isAuthenticated", true);
         } else {
             userInfo.put("isAuthenticated", false);
-            userInfo.put("message", "User not authenticated or not an OAuth2 user.");
+            userInfo.put("message", "User not authenticated.");
         }
-        return userInfo;
-    }
-
-    // JWT 토큰 기반 사용자 정보 반환 (새로운 엔드포인트)
-    @PostMapping("/user/token")
-    public Map<String, Object> getCurrentUserByToken(@RequestHeader("Authorization") String authHeader) {
-        Map<String, Object> userInfo = new HashMap<>();
-
-        if (authHeader != null && authHeader.startsWith("Bearer ")) {
-            String token = authHeader.substring(7);
-            
-            if (jwtService.validateToken(token)) {
-                try {
-                    userInfo.put("user_id", jwtService.extractUserId(token));
-                    userInfo.put("sns_type", jwtService.extractSnsType(token));
-                    userInfo.put("sns_id", jwtService.extractSnsId(token));
-                    userInfo.put("username", jwtService.extractUsername(token));
-                    userInfo.put("isAuthenticated", true);
-                } catch (Exception e) {
-                    userInfo.put("isAuthenticated", false);
-                    userInfo.put("message", "Invalid token");
-                }
-            } else {
-                userInfo.put("isAuthenticated", false);
-                userInfo.put("message", "Invalid or expired token");
-            }
-        } else {
-            userInfo.put("isAuthenticated", false);
-            userInfo.put("message", "No token provided");
-        }
-        
         return userInfo;
     }
 
