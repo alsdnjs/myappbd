@@ -8,15 +8,12 @@ import myapp.backend.domain.auth.service.JwtService;
 import myapp.backend.domain.auth.vo.UserPrincipal;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
-import java.util.HashMap;
 
 @Component
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
@@ -29,29 +26,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
             throws ServletException, IOException {
 
         String token = extractTokenFromRequest(request);
+        System.out.println("[JwtAuthenticationFilter] 요청에서 추출한 토큰: " + token);
 
-        if (StringUtils.hasText(token) && jwtService.validateToken(token)) {
-            try {
-                String username = jwtService.extractUsername(token);
-                Integer userId = jwtService.extractUserId(token);
-                String snsType = jwtService.extractSnsType(token);
-                String snsId = jwtService.extractSnsId(token);
+        if (StringUtils.hasText(token)) {
+            boolean valid = jwtService.validateToken(token);
+            System.out.println("[JwtAuthenticationFilter] 토큰 유효성 검사 결과: " + valid);
 
-                if (username != null && userId != null) {
-                    UserPrincipal userPrincipal = new UserPrincipal(username, userId, snsType, snsId);
+            if (valid) {
+                try {
+                    String username = jwtService.extractUsername(token);
+                    Integer userId = jwtService.extractUserId(token);
+                    String snsType = jwtService.extractSnsType(token);
+                    String snsId = jwtService.extractSnsId(token);
 
-                    UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
-                            userPrincipal,
-                            null,
-                            userPrincipal.getAuthorities()
-                    );
-                    
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    System.out.println("[JwtAuthenticationFilter] 토큰에서 추출한 username: " + username);
+                    System.out.println("[JwtAuthenticationFilter] 토큰에서 추출한 userId: " + userId);
+
+                    if (username != null && userId != null) {
+                        UserPrincipal userPrincipal = new UserPrincipal(username, userId, snsType, snsId);
+
+                        UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(
+                                userPrincipal,
+                                null,
+                                userPrincipal.getAuthorities()
+                        );
+
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                        System.out.println("[JwtAuthenticationFilter] SecurityContext에 인증 정보 설정 완료");
+                    }
+                } catch (Exception e) {
+                    System.err.println("[JwtAuthenticationFilter] JWT 처리 중 예외 발생:");
+                    e.printStackTrace();
                 }
-
-            } catch (Exception e) {
-                logger.error("JWT 토큰 처리 중 오류 발생", e);
             }
+        } else {
+            System.out.println("[JwtAuthenticationFilter] 토큰이 없거나 비어있음");
         }
 
         filterChain.doFilter(request, response);
@@ -64,4 +73,4 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
         return null;
     }
-} 
+}

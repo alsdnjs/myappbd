@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="myapp.backend.domain.board.mapper.BoardMapper">
+    
+    <!-- 게시글 목록 조회 -->
+    <select id="getBoardList" resultType="myapp.backend.domain.board.vo.BoardVO">
+        SELECT 
+            b.board_id,
+            b.board_content,
+            b.uploaded_at,
+            b.user_id,
+            b.image_id,
+            b.view,
+            u.username
+        FROM board b
+        JOIN user u ON b.user_id = u.user_id
+        ORDER BY b.uploaded_at DESC
+    </select>
+    
+    <!-- 개별 글 조회 -->
+    <select id="getBoardById" parameterType="int" resultType="myapp.backend.domain.board.vo.BoardVO">
+        SELECT 
+            b.board_id,
+            b.board_content,
+            b.uploaded_at,
+            b.user_id,
+            b.image_id,
+            b.view,
+            u.username
+        FROM board b
+        JOIN user u ON b.user_id = u.user_id
+        WHERE b.board_id = #{board_id}
+    </select>
+    
+    <!-- 게시글 작성 (동적 쿼리) -->
+    <insert id="insertBoard" parameterType="myapp.backend.domain.board.vo.BoardVO">
+        INSERT INTO board (
+            board_content,
+            user_id,
+            uploaded_at,
+            view
+            <if test="image_id != null and image_id != 0">
+                , image_id
+            </if>
+        ) VALUES (
+            #{board_content},
+            #{user_id},
+            NOW(),
+            0
+            <if test="image_id != null and image_id != 0">
+                , #{image_id}
+            </if>
+        )
+    </insert>
+    
+    <!-- 조회수 증가 -->
+    <update id="updateViewCount" parameterType="int">
+        UPDATE board 
+        SET view = view + 1 
+        WHERE board_id = #{board_id}
+    </update>
+    
+    <!-- 상세페이지 조회 -->
+    <select id="getBoardDetailById" parameterType="int" resultType="myapp.backend.domain.board.vo.BoardVO">
+        SELECT 
+            b.board_id,
+            b.board_content,
+            b.uploaded_at,
+            b.user_id,
+            b.image_id,
+            b.view,
+            u.username
+        FROM board b
+        JOIN user u ON b.user_id = u.user_id
+        WHERE b.board_id = #{board_id}
+    </select>
+  
+  <!-- 작성자 조회 -->
+  <select id="findAuthorUserId" parameterType="int" resultType="int">
+    SELECT user_id
+    FROM board
+    WHERE board_id = #{board_id}
+  </select>
+
+  <!-- 게시글 삭제 -->
+  <delete id="deleteBoard" parameterType="int">
+    DELETE FROM board
+    WHERE board_id = #{board_id}
+  </delete>
+
+  <!-- 게시글 수정 -->
+  <update id="updateBoard" parameterType="myapp.backend.domain.board.vo.BoardVO">
+    UPDATE board
+    <set>
+      <if test="board_content != null">board_content = #{board_content},</if>
+      <if test="image_id != null and image_id != 0">image_id = #{image_id},</if>
+    </set>
+    WHERE board_id = #{board_id}
+  </update>
+    
+</mapper> 
