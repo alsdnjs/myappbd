@@ -12,7 +12,12 @@
             b.image_id,
             b.view,
             u.username,
-            i.image_url
+            i.image_url,
+            CASE 
+                WHEN i.image_url IS NOT NULL AND i.image_url LIKE '%,%' 
+                THEN i.image_url
+                ELSE i.image_url
+            END as imageUrls
         FROM board b
         JOIN user u ON b.user_id = u.user_id
         LEFT JOIN images i ON b.image_id = i.image_id
@@ -29,7 +34,12 @@
             b.image_id,
             b.view,
             u.username,
-            i.image_url
+            i.image_url,
+            CASE 
+                WHEN i.image_url IS NOT NULL AND i.image_url LIKE '%,%' 
+                THEN i.image_url
+                ELSE i.image_url
+            END as imageUrls
         FROM board b
         JOIN user u ON b.user_id = u.user_id
         LEFT JOIN images i ON b.image_id = i.image_id
@@ -74,7 +84,12 @@
             b.user_id,
             b.image_id,
             b.view,
-            u.username
+            u.username,
+            CASE 
+                WHEN i.image_url IS NOT NULL AND i.image_url LIKE '%,%' 
+                THEN i.image_url
+                ELSE i.image_url
+            END as imageUrls
         FROM board b
         JOIN user u ON b.user_id = u.user_id
         LEFT JOIN images i ON b.image_id = i.image_id
@@ -93,6 +108,8 @@
     DELETE FROM board
     WHERE board_id = #{board_id}
   </delete>
+  
+
   
   <!-- 이미지 정보 저장 -->
   <insert id="insertImage" parameterType="myapp.backend.domain.board.vo.ImageVO" useGeneratedKeys="true" keyProperty="image_id">
@@ -113,6 +130,8 @@
     ORDER BY uploaded_at DESC 
     LIMIT 1
   </select>
+  
+
 
       <!-- 게시글 수정 -->
     <update id="updateBoard" parameterType="myapp.backend.domain.board.vo.BoardVO">

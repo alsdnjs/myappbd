@@ -20,6 +20,7 @@ public class BoardVO {
     private int image_id; // image 테이블 
     private String username; // 작성자 이름 (user 테이블)
     private String image_url; // 이미지 URL (images 테이블에서 JOIN) - 여러 이미지 (쉼표로 구분)
+    private List<String> imageUrls; // 여러 이미지 URL을 배열로 제공
     
     // board_content에서 제목과 내용을 분리하는 메서드
     public String getTitle() {

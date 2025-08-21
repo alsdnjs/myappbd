@@ -1,6 +1,7 @@
 package myapp.backend.domain.board.service;
 
 import java.util.List;
+import java.util.ArrayList;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -18,7 +19,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.UUID;
 
-
 @Service
 public class BoardServiceImpl implements BoardService {
     @Autowired
@@ -26,7 +26,26 @@ public class BoardServiceImpl implements BoardService {
     
     @Override
     public List<BoardVO> getBoardList() {
-        return boardMapper.getBoardList();
+        List<BoardVO> boardList = boardMapper.getBoardList();
+        
+        // 각 게시글에 대해 imageUrls 설정
+        for (BoardVO board : boardList) {
+            if (board.getImage_url() != null && board.getImage_url().contains(",")) {
+                String[] imageUrlArray = board.getImage_url().split(",");
+                List<String> imageUrls = new ArrayList<>();
+                for (String url : imageUrlArray) {
+                    imageUrls.add(url.trim());
+                }
+                board.setImageUrls(imageUrls);
+            } else if (board.getImage_url() != null) {
+                // 단일 이미지인 경우
+                List<String> imageUrls = new ArrayList<>();
+                imageUrls.add(board.getImage_url());
+                board.setImageUrls(imageUrls);
+            }
+        }
+        
+        return boardList;
     }
     
     @Override
@@ -52,7 +71,6 @@ public class BoardServiceImpl implements BoardService {
             // 3. 이미지가 있으면 처리 (여러 이미지를 쉼표로 구분해서 저장)
             if (images != null && images.length > 0) {
                 StringBuilder allImageUrls = new StringBuilder();
-                int firstImageId = 0;
                 
                 for (int i = 0; i < images.length; i++) {
                     MultipartFile image = images[i];
@@ -65,65 +83,56 @@ public class BoardServiceImpl implements BoardService {
                             allImageUrls.append(",");
                         }
                         allImageUrls.append(result.getImageUrl());
-                        
-                        // 첫 번째 이미지 ID 저장
-                        if (i == 0) {
-                            firstImageId = result.getImageId();
-                        }
                     }
                 }
                 
-                // 모든 이미지 URL을 쉼표로 구분해서 하나의 레코드로 저장
-                if (allImageUrls.length() > 0) {
-                    ImageVO combinedImageVO = new ImageVO();
-                    combinedImageVO.setImage_id(0);
-                    combinedImageVO.setImage_url(allImageUrls.toString());
-                    
-                    int combinedImageId = boardMapper.insertImage(combinedImageVO);
-                    
-                    // board.image_id를 결합된 이미지 ID로 설정
-                    boardMapper.updateBoardImageId(board.getBoard_id(), combinedImageId);
-                    
-                    System.out.println("여러 이미지 결합 저장: " + allImageUrls.toString());
-                    System.out.println("결합된 이미지 ID: " + combinedImageId);
-                }
+                // 4. 모든 이미지 URL을 하나의 ImageVO에 저장
+                ImageVO combinedImageVO = new ImageVO();
+                combinedImageVO.setImage_url(allImageUrls.toString());
+                combinedImageVO.setImage_id(0); // MyBatis가 자동으로 설정
+                
+                boardMapper.insertImage(combinedImageVO);
+                
+                // 5. 게시글의 image_id 업데이트
+                boardMapper.updateBoardImageId(board.getBoard_id(), combinedImageVO.getImage_id());
             }
+            
         } catch (Exception e) {
-            throw new ResponseStatusException(HttpStatus.INTERNAL_SERVER_ERROR, "게시글 작성 중 오류가 발생했습니다: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("게시글 작성 중 오류가 발생했습니다: " + e.getMessage());
         }
     }
     
+    // 이미지 저장 및 게시글 연결
     private ImageSaveResult saveImageAndConnectToBoard(MultipartFile image, int boardId, int order) throws IOException {
-        // 이미지 저장 경로 설정 (절대 경로로 수정)
-        String uploadDir = "backend/src/main/resources/static/upload/";
-        File dir = new File(uploadDir);
-        if (!dir.exists()) {
-            dir.mkdirs();
+        // 업로드 디렉토리 설정
+        String uploadDir = System.getProperty("user.dir") + "/backend/src/main/resources/static/upload/";
+        
+        // 디렉토리가 없으면 생성
+        File uploadDirectory = new File(uploadDir);
+        if (!uploadDirectory.exists()) {
+            uploadDirectory.mkdirs();
         }
         
-        // 고유한 파일명 생성
+        // 파일명 생성 (UUID + 원본 확장자)
         String originalFilename = image.getOriginalFilename();
-        String fileExtension = originalFilename.substring(originalFilename.lastIndexOf("."));
-        String storedFilename = UUID.randomUUID().toString() + fileExtension;
+        String extension = "";
+        if (originalFilename != null && originalFilename.contains(".")) {
+            extension = originalFilename.substring(originalFilename.lastIndexOf("."));
+        }
+        String storedFilename = UUID.randomUUID().toString() + extension;
         
         // 파일 저장
-        Path filePath = Paths.get(uploadDir + storedFilename);
+        Path filePath = Paths.get(uploadDir, storedFilename);
         Files.copy(image.getInputStream(), filePath);
         
-        // images 테이블에 저장
+        // 이미지 URL 생성
         String imageUrl = "/upload/" + storedFilename;
+        
+        // ImageVO 생성 (실제로는 사용하지 않음, 로깅용)
         ImageVO imageVO = new ImageVO();
-        imageVO.setImage_id(0);  // 초기값 설정
         imageVO.setImage_url(imageUrl);
-        
-        System.out.println("=== 이미지 저장 디버깅 ===");
-        System.out.println("ImageVO 생성: image_id=" + imageVO.getImage_id() + ", image_url=" + imageVO.getImage_url());
-        
-        int imageId = boardMapper.insertImage(imageVO);
-        
-        System.out.println("insertImage 호출 후 ImageVO: image_id=" + imageVO.getImage_id());
-        System.out.println("insertImage 반환값: " + imageId);
-        System.out.println("=== 디버깅 끝 ===");
+        imageVO.setImage_id(0);
         
         // MyBatis keyProperty로 설정된 실제 이미지 ID 사용
         int actualImageId = imageVO.getImage_id();
@@ -131,7 +140,7 @@ public class BoardServiceImpl implements BoardService {
         System.out.println("이미지 저장됨: " + storedFilename + " (게시글 ID: " + boardId + ", 순서: " + order + ")");
         System.out.println("저장 경로: " + filePath.toAbsolutePath());
         System.out.println("이미지 URL: " + imageUrl);
-        System.out.println("MyBatis 반환값: " + imageId);
+        System.out.println("MyBatis 반환값: " + actualImageId);
         System.out.println("실제 이미지 ID: " + actualImageId);
         
         return new ImageSaveResult(actualImageId, imageUrl);
@@ -172,23 +181,38 @@ public class BoardServiceImpl implements BoardService {
         // 상세 정보 조회
         BoardVO boardDetail = boardMapper.getBoardDetailById(board_id);
         
+        // 여러 이미지 URL을 배열로 설정
+        if (boardDetail != null && boardDetail.getImage_url() != null && boardDetail.getImage_url().contains(",")) {
+            String[] imageUrlArray = boardDetail.getImage_url().split(",");
+            List<String> imageUrls = new ArrayList<>();
+            for (String url : imageUrlArray) {
+                imageUrls.add(url.trim());
+            }
+            boardDetail.setImageUrls(imageUrls);
+        } else if (boardDetail != null && boardDetail.getImage_url() != null) {
+            // 단일 이미지인 경우
+            List<String> imageUrls = new ArrayList<>();
+            imageUrls.add(boardDetail.getImage_url());
+            boardDetail.setImageUrls(imageUrls);
+        }
+        
         return boardDetail;
     }
 
     @Override
     public void deleteBoard(int boardId, int requestUserId) {
-    Integer authorUserId = boardMapper.findAuthorUserId(boardId);
-    if (authorUserId == null) {
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다.");
+        Integer authorUserId = boardMapper.findAuthorUserId(boardId);
+        if (authorUserId == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다.");
+        }
+        if (!authorUserId.equals(requestUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "작성자만 삭제할 수 있습니다.");
+        }
+        int deleted = boardMapper.deleteBoard(boardId);
+        if (deleted == 0) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "삭제 대상이 존재하지 않습니다.");
+        }
     }
-    if (!authorUserId.equals(requestUserId)) {
-        throw new ResponseStatusException(HttpStatus.FORBIDDEN, "작성자만 삭제할 수 있습니다.");
-    }
-    int deleted = boardMapper.deleteBoard(boardId);
-    if (deleted == 0) {
-        throw new ResponseStatusException(HttpStatus.NOT_FOUND, "삭제 대상이 존재하지 않습니다.");
-    }
-}
 
     @Override
     public void updateBoard(int boardId, BoardVO updatedBoard, int requestUserId) {

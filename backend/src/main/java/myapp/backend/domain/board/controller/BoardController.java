@@ -32,9 +32,20 @@ public class BoardController {
     @Autowired
     private BoardService boardService;
     
-    @GetMapping("board")
-    public List<BoardVO> getBoardList() {
-        return boardService.getBoardList();
+    @GetMapping("/board")
+    public ResponseEntity<List<BoardVO>> getBoardList() {
+        System.out.println("[BoardController] getBoardList API 호출됨");
+        
+        try {
+            System.out.println("[BoardController] boardService.getBoardList() 호출 시작");
+            List<BoardVO> boardList = boardService.getBoardList();
+            System.out.println("[BoardController] boardService.getBoardList() 완료, 결과: " + boardList.size() + "개");
+            return ResponseEntity.ok(boardList);
+        } catch (Exception e) {
+            System.out.println("[BoardController] getBoardList 오류 발생: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
     }
     
     // 게시물 작성 (이미지 첨부 포함) - 인증된 사용자만
@@ -132,19 +143,68 @@ public class BoardController {
     @GetMapping("/image/{filename}")
     public ResponseEntity<Resource> getImage(@PathVariable String filename) {
         try {
-            // 이미지 파일 경로 설정 (절대 경로로 수정)
-            String uploadDir = "backend/src/main/resources/static/upload/";
-            Path filePath = Paths.get(uploadDir + filename);
-            Resource resource = new FileSystemResource(filePath.toFile());
+            // 이미지 파일 경로 설정 (여러 경로 시도)
+            String[] possiblePaths = {
+                System.getProperty("user.dir") + "/src/main/resources/static/upload/",
+                System.getProperty("user.dir") + "/build/resources/main/static/upload/",
+                "src/main/resources/static/upload/",
+                "build/resources/main/static/upload/",
+                // 현재 디렉토리 기준 경로 추가
+                System.getProperty("user.dir") + "/backend/src/main/resources/static/upload/",
+                System.getProperty("user.dir") + "/backend/build/resources/main/static/upload/",
+                // 정확한 경로 추가
+                "/Users/munmin-won/Desktop/myappbd/backend/src/main/resources/static/upload/",
+                "/Users/munmin-won/Desktop/myappbd/backend/build/resources/main/static/upload/"
+            };
             
+            Path filePath = null;
+            String usedPath = null;
+            
+            // 여러 경로에서 파일 찾기
+            System.out.println("[BoardController] 이미지 파일 검색 시작: " + filename);
+            for (String path : possiblePaths) {
+                Path testPath = Paths.get(path + filename);
+                boolean exists = testPath.toFile().exists();
+                System.out.println("  - 경로: " + path + filename + " (존재: " + exists + ")");
+                if (exists) {
+                    filePath = testPath;
+                    usedPath = path;
+                    System.out.println("  - 파일 발견: " + path);
+                    break;
+                }
+            }
+            
+            if (filePath == null) {
+                System.err.println("[BoardController] 이미지 파일을 찾을 수 없음: " + filename);
+                System.err.println("[BoardController] 시도한 경로들:");
+                for (String path : possiblePaths) {
+                    System.err.println("  - " + path + filename + " (존재: " + Paths.get(path + filename).toFile().exists() + ")");
+                }
+                return ResponseEntity.notFound().build();
+            }
+            
+            System.out.println("[BoardController] 이미지 파일 발견: " + usedPath + filename);
+            Resource resource = new FileSystemResource(filePath.toFile());
+        
             if (resource.exists() && resource.isReadable()) {
                 // 이미지 타입 설정
                 String contentType = determineContentType(filename);
+                
+                System.out.println("[BoardController] 이미지 응답 성공:");
+                System.out.println("  - 파일명: " + filename);
+                System.out.println("  - 경로: " + filePath.toAbsolutePath());
+                System.out.println("  - 크기: " + resource.contentLength() + " bytes");
+                System.out.println("  - Content-Type: " + contentType);
                 
                 return ResponseEntity.ok()
                     .contentType(MediaType.parseMediaType(contentType))
                     .body(resource);
             } else {
+                System.err.println("[BoardController] 이미지 리소스 문제:");
+                System.err.println("  - 파일명: " + filename);
+                System.err.println("  - 경로: " + filePath.toAbsolutePath());
+                System.err.println("  - 존재: " + resource.exists());
+                System.err.println("  - 읽기 가능: " + resource.isReadable());
                 return ResponseEntity.notFound().build();
             }
         } catch (Exception e) {

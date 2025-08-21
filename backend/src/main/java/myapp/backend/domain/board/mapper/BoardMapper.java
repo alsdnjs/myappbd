@@ -25,4 +25,6 @@ public interface BoardMapper {
     
     // 최근 생성된 게시글 조회
     BoardVO getLatestBoardByUserId(int userId);
+    
+
 }

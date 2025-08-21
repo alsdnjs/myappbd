@@ -25,6 +25,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        // 이미지 조회 API는 JWT 인증을 거치지 않음
+        if (request.getRequestURI().startsWith("/api/board/image/")) {
+            System.out.println("[JwtAuthenticationFilter] 이미지 요청 우회: " + request.getRequestURI());
+            filterChain.doFilter(request, response);
+            return;
+        }
+
         String token = extractTokenFromRequest(request);
         System.out.println("[JwtAuthenticationFilter] 요청에서 추출한 토큰: " + token);
 

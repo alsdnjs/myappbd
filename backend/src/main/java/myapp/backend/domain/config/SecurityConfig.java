@@ -17,6 +17,8 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+
+
 import java.util.List;
 
 @Configuration
@@ -42,17 +44,17 @@ public class SecurityConfig {
                 ex.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED))  // 인증 실패 시 401 반환
             )
             .authorizeHttpRequests(authorize -> authorize
-                // 모든 정적 리소스 허용 (가장 위쪽)
+                // 이미지 조회 API는 가장 먼저 허용 (인증 없이) - 최우선 처리
+                .requestMatchers("/api/board/image/**").permitAll()
+                // 정적 리소스 허용
                 .requestMatchers("/upload/**", "/static/**", "/resources/**", "/css/**", "/js/**", "/images/**", "/image/**").permitAll()
                 // 리소스 및 OAuth 로그인 관련 경로는 모두 허용
                 .requestMatchers("/", "/api/auth/**", "/login/oauth2/**").permitAll()
                 // 게시판: 조회는 허용, 작성/수정/삭제는 인증 필요
                 .requestMatchers(HttpMethod.GET, "/api/board/**").permitAll()
-                .requestMatchers(HttpMethod.POST, "/api/board/**").authenticated()  // 테스트용으로 임시 허용
+                .requestMatchers(HttpMethod.POST, "/api/board/**").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/board/**").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/board/**").authenticated()
-                // 이미지 관련 경로 허용 (수정됨)
-                .requestMatchers("/upload/**", "/static/**", "/resources/**").permitAll()
                 // 그 외 모든 요청 인증 필요
                 .anyRequest().authenticated()
             )
