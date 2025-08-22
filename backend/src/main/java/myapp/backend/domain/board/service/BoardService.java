@@ -14,4 +14,5 @@ public interface BoardService {
     BoardVO getBoardDetail(int board_id, Integer currentUserId); // 상세페이지 조회
     void deleteBoard(int board_id, int userId); // 게시물 삭제
     void updateBoard(int board_id, BoardVO updatedBoard, int userId); // 게시물 수정
+    void updateBoardWithImages(int boardId, String title, String content, MultipartFile[] images, int userId); // 게시물 수정 (이미지 포함)
 }

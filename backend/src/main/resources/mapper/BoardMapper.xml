@@ -121,6 +121,12 @@
     UPDATE board SET image_id = #{image_id} WHERE board_id = #{board_id}
   </update>
   
+  <!-- 이미지 삭제 -->
+  <delete id="deleteImage" parameterType="int">
+    DELETE FROM images
+    WHERE image_id = #{image_id}
+  </delete>
+  
 
   
   <!-- 사용자의 최근 생성된 게시글 조회 -->

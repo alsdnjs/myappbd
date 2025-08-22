@@ -201,6 +201,8 @@ public class BoardServiceImpl implements BoardService {
 
     @Override
     public void deleteBoard(int boardId, int requestUserId) {
+        System.out.println("[BoardServiceImpl] deleteBoard 시작 - boardId: " + boardId);
+        
         Integer authorUserId = boardMapper.findAuthorUserId(boardId);
         if (authorUserId == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다.");
@@ -208,10 +210,36 @@ public class BoardServiceImpl implements BoardService {
         if (!authorUserId.equals(requestUserId)) {
             throw new ResponseStatusException(HttpStatus.FORBIDDEN, "작성자만 삭제할 수 있습니다.");
         }
+        
+        // 게시글의 이미지 정보 조회
+        BoardVO existingBoard = boardMapper.getBoardDetailById(boardId);
+        if (existingBoard != null && existingBoard.getImage_id() != 0) {
+            System.out.println("[BoardServiceImpl] 이미지 삭제 시작 - imageId: " + existingBoard.getImage_id());
+            
+            try {
+                // 이미지 레코드 삭제
+                boardMapper.deleteImage(existingBoard.getImage_id());
+                System.out.println("[BoardServiceImpl] 이미지 레코드 삭제 완료");
+                
+                // 실제 이미지 파일 삭제
+                if (existingBoard.getImage_url() != null) {
+                    deleteImageFiles(existingBoard.getImage_url());
+                    System.out.println("[BoardServiceImpl] 이미지 파일 삭제 완료");
+                }
+                
+            } catch (Exception e) {
+                System.err.println("[BoardServiceImpl] 이미지 삭제 중 오류: " + e.getMessage());
+                // 이미지 삭제 실패해도 게시글은 삭제 진행
+            }
+        }
+        
+        // 게시글 삭제
         int deleted = boardMapper.deleteBoard(boardId);
         if (deleted == 0) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "삭제 대상이 존재하지 않습니다.");
         }
+        
+        System.out.println("[BoardServiceImpl] deleteBoard 완료 - boardId: " + boardId);
     }
 
     @Override
@@ -229,6 +257,114 @@ public class BoardServiceImpl implements BoardService {
         int updated = boardMapper.updateBoard(updatedBoard);
         if (updated == 0) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "수정 대상이 존재하지 않습니다.");
+        }
+    }
+    
+    @Override
+    public void updateBoardWithImages(int boardId, String title, String content, MultipartFile[] images, int requestUserId) {
+        // 1. 권한 확인
+        Integer authorUserId = boardMapper.findAuthorUserId(boardId);
+        if (authorUserId == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "게시글을 찾을 수 없습니다.");
+        }
+        if (!authorUserId.equals(requestUserId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "작성자만 수정할 수 있습니다.");
+        }
+        
+        try {
+            // 2. 기존 게시글 정보 조회
+            BoardVO existingBoard = boardMapper.getBoardDetailById(boardId);
+            if (existingBoard == null) {
+                throw new ResponseStatusException(HttpStatus.NOT_FOUND, "수정할 게시글을 찾을 수 없습니다.");
+            }
+            
+            // 3. 제목과 내용을 [제목] 내용 형식으로 합치기
+            String combinedContent = "[" + title + "] " + content;
+            
+            // 4. 게시글 내용 업데이트
+            BoardVO updateBoard = new BoardVO();
+            updateBoard.setBoard_id(boardId);
+            updateBoard.setBoard_content(combinedContent);
+            boardMapper.updateBoard(updateBoard);
+            
+            // 5. 이미지가 있으면 기존 이미지 삭제 후 새 이미지 업로드
+            if (images != null && images.length > 0) {
+                // 기존 이미지 정보 삭제
+                if (existingBoard.getImage_id() != 0) {
+                    // 기존 이미지 레코드 삭제
+                    boardMapper.deleteImage(existingBoard.getImage_id());
+                    
+                    // 기존 이미지 파일들 삭제
+                    if (existingBoard.getImage_url() != null) {
+                        deleteImageFiles(existingBoard.getImage_url());
+                    }
+                }
+                
+                // 새 이미지 업로드 및 저장
+                StringBuilder allImageUrls = new StringBuilder();
+                
+                for (int i = 0; i < images.length; i++) {
+                    MultipartFile image = images[i];
+                    if (!image.isEmpty()) {
+                        // 이미지 저장
+                        ImageSaveResult result = saveImageAndConnectToBoard(image, boardId, i);
+                        
+                        // 모든 이미지 URL을 쉼표로 구분해서 저장
+                        if (i > 0) {
+                            allImageUrls.append(",");
+                        }
+                        allImageUrls.append(result.getImageUrl());
+                    }
+                }
+                
+                // 새 이미지 정보 저장
+                ImageVO newImageVO = new ImageVO();
+                newImageVO.setImage_url(allImageUrls.toString());
+                newImageVO.setImage_id(0);
+                
+                boardMapper.insertImage(newImageVO);
+                
+                // 게시글의 image_id 업데이트
+                boardMapper.updateBoardImageId(boardId, newImageVO.getImage_id());
+            }
+            
+        } catch (Exception e) {
+            e.printStackTrace();
+            throw new RuntimeException("게시글 수정 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+    
+    // 이미지 파일들을 실제로 삭제하는 메서드
+    private void deleteImageFiles(String imageUrl) {
+        if (imageUrl == null || imageUrl.trim().isEmpty()) {
+            return;
+        }
+        
+        // 쉼표로 구분된 여러 이미지 URL 처리
+        String[] imageUrls = imageUrl.split(",");
+        
+        for (String url : imageUrls) {
+            String filename = url.trim();
+            if (filename.startsWith("/upload/")) {
+                filename = filename.substring(8); // "/upload/" 제거
+            }
+            
+            // 여러 경로에서 파일 찾아서 삭제
+            String[] possiblePaths = {
+                System.getProperty("user.dir") + "/backend/src/main/resources/static/upload/",
+                System.getProperty("user.dir") + "/backend/build/resources/main/static/upload/",
+                System.getProperty("user.dir") + "/src/main/resources/static/upload/",
+                System.getProperty("user.dir") + "/build/resources/main/static/upload/"
+            };
+            
+            for (String path : possiblePaths) {
+                java.io.File file = new java.io.File(path + filename);
+                if (file.exists()) {
+                    boolean deleted = file.delete();
+                    System.out.println("[BoardServiceImpl] 이미지 파일 삭제: " + path + filename + " (성공: " + deleted + ")");
+                    break; // 한 경로에서 삭제되면 다음 경로는 시도하지 않음
+                }
+            }
         }
     }
 }

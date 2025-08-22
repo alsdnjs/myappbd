@@ -139,6 +139,27 @@ public class BoardController {
         return ResponseEntity.noContent().build();
     }
     
+    // 게시물 수정 (제목 + 내용 + 이미지 포함) - 작성자만
+    @PutMapping("/update-with-images/{board_id}")
+    public ResponseEntity<?> updateBoardWithImages(
+            @PathVariable("board_id") int board_id,
+            @RequestParam("title") String title,
+            @RequestParam("content") String content,
+            @RequestParam(value = "images", required = false) MultipartFile[] images,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        
+        if (principal == null) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+        
+        try {
+            boardService.updateBoardWithImages(board_id, title, content, images, principal.getUserId());
+            return ResponseEntity.ok().body("게시글이 성공적으로 수정되었습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("게시글 수정에 실패했습니다: " + e.getMessage());
+        }
+    }
+    
     // 이미지 조회 API (인증 없이 접근 가능)
     @GetMapping("/image/{filename}")
     public ResponseEntity<Resource> getImage(@PathVariable String filename) {

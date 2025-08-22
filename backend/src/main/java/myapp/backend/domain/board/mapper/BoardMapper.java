@@ -20,6 +20,7 @@ public interface BoardMapper {
     // 이미지 관련 메서드
     int insertImage(ImageVO imageVO); // 이미지 정보 저장
     void updateBoardImageId(int board_id, int image_id); // 게시글의 image_id 업데이트
+    void deleteImage(int image_id); // 이미지 삭제
     
 
     
