@@ -25,6 +25,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
+        System.out.println("[JwtAuthenticationFilter] 요청 URI: " + request.getRequestURI());
+        System.out.println("[JwtAuthenticationFilter] 요청 메서드: " + request.getMethod());
+
         // 이미지 조회 API는 JWT 인증을 거치지 않음
         if (request.getRequestURI().startsWith("/api/board/image/")) {
             System.out.println("[JwtAuthenticationFilter] 이미지 요청 우회: " + request.getRequestURI());
@@ -76,7 +79,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     private String extractTokenFromRequest(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
         if (StringUtils.hasText(bearerToken) && bearerToken.startsWith("Bearer ")) {
-            return bearerToken.substring(7);
+            String token = bearerToken.substring(7);
+            // 중괄호 제거 (프론트엔드에서 잘못 전달된 경우)
+            if (token.startsWith("{") && token.endsWith("}")) {
+                token = token.substring(1, token.length() - 1);
+                System.out.println("[JwtAuthenticationFilter] 중괄호 제거된 토큰: " + token);
+            }
+            return token;
         }
         return null;
     }

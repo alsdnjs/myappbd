@@ -11,6 +11,7 @@ import org.springframework.web.server.ResponseStatusException;
 import myapp.backend.domain.board.mapper.BoardMapper;
 import myapp.backend.domain.board.vo.BoardVO;
 import myapp.backend.domain.board.vo.ImageVO;
+import myapp.backend.domain.board.vo.BoardLikeVO;
 import org.springframework.web.multipart.MultipartFile;
 import java.io.File;
 import java.io.IOException;
@@ -332,6 +333,69 @@ public class BoardServiceImpl implements BoardService {
             e.printStackTrace();
             throw new RuntimeException("게시글 수정 중 오류가 발생했습니다: " + e.getMessage());
         }
+    }
+    
+    // 좋아요 토글 (추가/취소)
+    @Override
+    public boolean toggleBoardLike(int board_id, int userId) {
+        try {
+            // 현재 좋아요 상태 확인
+            boolean isLiked = boardMapper.existsBoardLike(userId, board_id);
+            
+            if (isLiked) {
+                // 이미 좋아요한 상태면 취소
+                boardMapper.deleteBoardLike(userId, board_id);
+                System.out.println("[BoardServiceImpl] 좋아요 취소 - boardId: " + board_id + ", userId: " + userId);
+                return false; // 좋아요 취소됨
+            } else {
+                // 좋아요하지 않은 상태면 추가
+                BoardLikeVO boardLike = new BoardLikeVO(userId, board_id);
+                boardMapper.insertBoardLike(boardLike);
+                System.out.println("[BoardServiceImpl] 좋아요 추가 - boardId: " + board_id + ", userId: " + userId);
+                return true; // 좋아요 추가됨
+            }
+        } catch (Exception e) {
+            System.err.println("[BoardServiceImpl] 좋아요 토글 중 오류: " + e.getMessage());
+            e.printStackTrace();
+            throw new RuntimeException("좋아요 처리 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+    
+    // 사용자가 해당 게시글을 좋아요했는지 확인
+    @Override
+    public boolean isLikedByUser(int board_id, int userId) {
+        return boardMapper.existsBoardLike(userId, board_id);
+    }
+    
+    // 게시글의 좋아요 수 조회
+    @Override
+    public int getBoardLikeCount(int board_id) {
+        return boardMapper.getBoardLikeCount(board_id);
+    }
+    
+    // 인증된 사용자를 위한 게시글 목록 조회 (좋아요 상태 포함)
+    @Override
+    public List<BoardVO> getBoardListWithLikeStatus(int userId) {
+        List<BoardVO> boardList = boardMapper.getBoardListWithLikeStatus(userId);
+        
+        // 각 게시글에 대해 imageUrls 설정
+        for (BoardVO board : boardList) {
+            if (board.getImage_url() != null && board.getImage_url().contains(",")) {
+                String[] imageUrlArray = board.getImage_url().split(",");
+                List<String> imageUrls = new ArrayList<>();
+                for (String url : imageUrlArray) {
+                    imageUrls.add(url.trim());
+                }
+                board.setImageUrls(imageUrls);
+            } else if (board.getImage_url() != null) {
+                // 단일 이미지인 경우
+                List<String> imageUrls = new ArrayList<>();
+                imageUrls.add(board.getImage_url());
+                board.setImageUrls(imageUrls);
+            }
+        }
+        
+        return boardList;
     }
     
     // 이미지 파일들을 실제로 삭제하는 메서드

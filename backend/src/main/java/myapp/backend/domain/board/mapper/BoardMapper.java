@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 
 import myapp.backend.domain.board.vo.BoardVO;
 import myapp.backend.domain.board.vo.ImageVO;
+import myapp.backend.domain.board.vo.BoardLikeVO;
 
 @Mapper
 public interface BoardMapper {
@@ -27,5 +28,13 @@ public interface BoardMapper {
     // 최근 생성된 게시글 조회
     BoardVO getLatestBoardByUserId(int userId);
     
+    // 좋아요 관련 메서드
+    void insertBoardLike(BoardLikeVO boardLike); // 좋아요 추가
+    void deleteBoardLike(int user_id, int board_id); // 좋아요 취소
+    boolean existsBoardLike(int user_id, int board_id); // 좋아요 존재 여부 확인
+    int getBoardLikeCount(int board_id); // 게시글 좋아요 수 조회
+    
+    // 인증된 사용자를 위한 게시글 목록 조회 (좋아요 상태 포함)
+    List<BoardVO> getBoardListWithLikeStatus(int userId);
 
 }

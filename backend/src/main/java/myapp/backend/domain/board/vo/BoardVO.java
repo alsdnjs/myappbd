@@ -22,6 +22,10 @@ public class BoardVO {
     private String image_url; // 이미지 URL (images 테이블에서 JOIN) - 여러 이미지 (쉼표로 구분)
     private List<String> imageUrls; // 여러 이미지 URL을 배열로 제공
     
+    // 좋아요 관련 필드
+    private Boolean isLiked; // 현재 사용자가 좋아요했는지 여부
+    private Integer likeCount; // 게시글의 좋아요 수
+    
     // board_content에서 제목과 내용을 분리하는 메서드
     public String getTitle() {
         if (board_content != null && board_content.startsWith("[") && board_content.contains("]")) {

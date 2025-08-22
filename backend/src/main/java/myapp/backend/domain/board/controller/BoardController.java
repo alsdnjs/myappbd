@@ -25,6 +25,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.HttpStatus;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.Map;
 
 @RestController
 @RequestMapping("api/board")
@@ -43,6 +44,27 @@ public class BoardController {
             return ResponseEntity.ok(boardList);
         } catch (Exception e) {
             System.out.println("[BoardController] getBoardList 오류 발생: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    // 인증된 사용자를 위한 게시글 목록 조회 (좋아요 상태 포함)
+    @GetMapping("/board/authenticated")
+    public ResponseEntity<List<BoardVO>> getBoardListWithLikeStatus(@AuthenticationPrincipal UserPrincipal principal) {
+        System.out.println("[BoardController] getBoardListWithLikeStatus API 호출됨");
+        
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(null);
+        }
+        
+        try {
+            System.out.println("[BoardController] boardService.getBoardListWithLikeStatus() 호출 시작 - userId: " + principal.getUserId());
+            List<BoardVO> boardList = boardService.getBoardListWithLikeStatus(principal.getUserId());
+            System.out.println("[BoardController] boardService.getBoardListWithLikeStatus() 완료, 결과: " + boardList.size() + "개");
+            return ResponseEntity.ok(boardList);
+        } catch (Exception e) {
+            System.out.println("[BoardController] getBoardListWithLikeStatus 오류 발생: " + e.getMessage());
             e.printStackTrace();
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
@@ -248,6 +270,64 @@ public class BoardController {
                 return "image/webp";
             default:
                 return "application/octet-stream";
+        }
+    }
+    
+    // 좋아요 토글 (추가/취소) - 인증된 사용자만
+    @PostMapping("/board/{board_id}/like")
+    public ResponseEntity<?> toggleBoardLike(
+            @PathVariable("board_id") int board_id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        
+        if (principal == null) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+        
+        try {
+            boolean isLiked = boardService.toggleBoardLike(board_id, principal.getUserId());
+            String message = isLiked ? "좋아요가 추가되었습니다." : "좋아요가 취소되었습니다.";
+            return ResponseEntity.ok().body(Map.of(
+                "message", message,
+                "isLiked", isLiked
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of(
+                "error", "좋아요 처리에 실패했습니다: " + e.getMessage()
+            ));
+        }
+    }
+    
+    // 게시글 좋아요 상태 확인 - 인증된 사용자만
+    @GetMapping("/board/{board_id}/like-status")
+    public ResponseEntity<?> getBoardLikeStatus(
+            @PathVariable("board_id") int board_id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        
+        if (principal == null) {
+            return ResponseEntity.status(401).body("로그인이 필요합니다.");
+        }
+        
+        try {
+            boolean isLiked = boardService.isLikedByUser(board_id, principal.getUserId());
+            int likeCount = boardService.getBoardLikeCount(board_id);
+            
+            return ResponseEntity.ok().body(Map.of(
+                "isLiked", isLiked,
+                "likeCount", likeCount
+            ));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("좋아요 상태 확인에 실패했습니다: " + e.getMessage());
+        }
+    }
+    
+    // 게시글 좋아요 수 조회 - 인증 없이 접근 가능
+    @GetMapping("/board/{board_id}/like-count")
+    public ResponseEntity<?> getBoardLikeCount(@PathVariable("board_id") int board_id) {
+        try {
+            int likeCount = boardService.getBoardLikeCount(board_id);
+            return ResponseEntity.ok().body(Map.of("likeCount", likeCount));
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("좋아요 수 조회에 실패했습니다: " + e.getMessage());
         }
     }
 }

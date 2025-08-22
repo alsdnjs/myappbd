@@ -14,5 +14,13 @@ public interface BoardService {
     BoardVO getBoardDetail(int board_id, Integer currentUserId); // 상세페이지 조회
     void deleteBoard(int board_id, int userId); // 게시물 삭제
     void updateBoard(int board_id, BoardVO updatedBoard, int userId); // 게시물 수정
+    
+    // 좋아요 관련 메서드
+    boolean toggleBoardLike(int board_id, int userId); // 좋아요 토글 (추가/취소)
+    boolean isLikedByUser(int board_id, int userId); // 사용자가 좋아요했는지 확인
+    int getBoardLikeCount(int board_id); // 게시글 좋아요 수 조회
     void updateBoardWithImages(int boardId, String title, String content, MultipartFile[] images, int userId); // 게시물 수정 (이미지 포함)
+    
+    // 인증된 사용자를 위한 게시글 목록 조회 (좋아요 상태 포함)
+    List<BoardVO> getBoardListWithLikeStatus(int userId);
 }
