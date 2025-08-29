@@ -50,6 +50,11 @@ public class SecurityConfig {
                 .requestMatchers("/upload/**", "/static/**", "/resources/**", "/css/**", "/js/**", "/images/**", "/image/**").permitAll()
                 // 리소스 및 OAuth 로그인 관련 경로는 모두 허용
                 .requestMatchers("/", "/api/auth/**", "/login/oauth2/**").permitAll()
+                
+                // 댓글 API: 조회는 허용, 작성/수정/삭제는 인증 필요
+                .requestMatchers(HttpMethod.GET, "/api/board/comment/**").permitAll()  // 댓글 조회는 누구나
+                .requestMatchers("/api/board/comment/**").authenticated()  // 댓글 작성/수정/삭제는 인증 필요
+                
                 // 게시판: 조회는 허용, 작성/수정/삭제는 인증 필요
                 .requestMatchers(HttpMethod.GET, "/api/board/**").permitAll()
                 .requestMatchers(HttpMethod.POST, "/api/board/**").authenticated()

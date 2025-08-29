@@ -28,6 +28,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         System.out.println("[JwtAuthenticationFilter] 요청 URI: " + request.getRequestURI());
         System.out.println("[JwtAuthenticationFilter] 요청 메서드: " + request.getMethod());
 
+        // 댓글 API 요청인지 확인
+        boolean isCommentRequest = request.getRequestURI().startsWith("/api/board/comment/");
+        if (isCommentRequest) {
+            System.out.println("[JwtAuthenticationFilter] 🗨️ 댓글 API 요청 감지: " + request.getRequestURI());
+        }
+
         // 이미지 조회 API는 JWT 인증을 거치지 않음
         if (request.getRequestURI().startsWith("/api/board/image/")) {
             System.out.println("[JwtAuthenticationFilter] 이미지 요청 우회: " + request.getRequestURI());
@@ -36,11 +42,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
 
         String token = extractTokenFromRequest(request);
-        System.out.println("[JwtAuthenticationFilter] 요청에서 추출한 토큰: " + token);
+        if (isCommentRequest) {
+            System.out.println("[JwtAuthenticationFilter] 🗨️ 댓글 API - 요청에서 추출한 토큰: " + (token != null ? token.substring(0, Math.min(token.length(), 20)) + "..." : "null"));
+        } else {
+            System.out.println("[JwtAuthenticationFilter] 요청에서 추출한 토큰: " + (token != null ? token.substring(0, Math.min(token.length(), 20)) + "..." : "null"));
+        }
 
         if (StringUtils.hasText(token)) {
             boolean valid = jwtService.validateToken(token);
-            System.out.println("[JwtAuthenticationFilter] 토큰 유효성 검사 결과: " + valid);
+            if (isCommentRequest) {
+                System.out.println("[JwtAuthenticationFilter] 🗨️ 댓글 API - 토큰 유효성 검사 결과: " + valid);
+            } else {
+                System.out.println("[JwtAuthenticationFilter] 토큰 유효성 검사 결과: " + valid);
+            }
 
             if (valid) {
                 try {
@@ -49,8 +63,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     String snsType = jwtService.extractSnsType(token);
                     String snsId = jwtService.extractSnsId(token);
 
-                    System.out.println("[JwtAuthenticationFilter] 토큰에서 추출한 username: " + username);
-                    System.out.println("[JwtAuthenticationFilter] 토큰에서 추출한 userId: " + userId);
+                    if (isCommentRequest) {
+                        System.out.println("[JwtAuthenticationFilter] 🗨️ 댓글 API - 토큰에서 추출한 username: " + username);
+                        System.out.println("[JwtAuthenticationFilter] 🗨️ 댓글 API - 토큰에서 추출한 userId: " + userId);
+                    } else {
+                        System.out.println("[JwtAuthenticationFilter] 토큰에서 추출한 username: " + username);
+                        System.out.println("[JwtAuthenticationFilter] 토큰에서 추출한 userId: " + userId);
+                    }
 
                     if (username != null && userId != null) {
                         UserPrincipal userPrincipal = new UserPrincipal(username, userId, snsType, snsId);
@@ -62,15 +81,31 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                         );
 
                         SecurityContextHolder.getContext().setAuthentication(authentication);
-                        System.out.println("[JwtAuthenticationFilter] SecurityContext에 인증 정보 설정 완료");
+                        if (isCommentRequest) {
+                            System.out.println("[JwtAuthenticationFilter] 🗨️ 댓글 API - SecurityContext에 인증 정보 설정 완료 ✅");
+                        } else {
+                            System.out.println("[JwtAuthenticationFilter] SecurityContext에 인증 정보 설정 완료");
+                        }
                     }
                 } catch (Exception e) {
-                    System.err.println("[JwtAuthenticationFilter] JWT 처리 중 예외 발생:");
+                    if (isCommentRequest) {
+                        System.err.println("[JwtAuthenticationFilter] 🗨️ 댓글 API - JWT 처리 중 예외 발생:");
+                    } else {
+                        System.err.println("[JwtAuthenticationFilter] JWT 처리 중 예외 발생:");
+                    }
                     e.printStackTrace();
+                }
+            } else {
+                if (isCommentRequest) {
+                    System.err.println("[JwtAuthenticationFilter] 🗨️ 댓글 API - 토큰이 유효하지 않음 ❌");
                 }
             }
         } else {
-            System.out.println("[JwtAuthenticationFilter] 토큰이 없거나 비어있음");
+            if (isCommentRequest) {
+                System.err.println("[JwtAuthenticationFilter] 🗨️ 댓글 API - 토큰이 없거나 비어있음 ❌");
+            } else {
+                System.out.println("[JwtAuthenticationFilter] 토큰이 없거나 비어있음");
+            }
         }
 
         filterChain.doFilter(request, response);
