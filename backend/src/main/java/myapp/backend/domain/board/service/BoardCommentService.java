@@ -21,4 +21,13 @@ public interface BoardCommentService {
     
     // 게시글의 총 댓글 수 조회
     int getCommentCountByBoardId(int board_id);
+    
+    // 대댓글 관련 메서드
+    void createReply(int board_id, int parent_id, String comment_content, int user_id); // 대댓글 작성
+    List<BoardCommentVO> getCommentsWithRepliesByBoardId(int board_id); // 게시글의 모든 댓글과 대댓글을 계층 구조로 조회
+    void updateReply(int comment_id, String comment_content, int user_id); // 대댓글 수정
+    void deleteReply(int comment_id, int user_id); // 대댓글 삭제
+    void deleteCommentWithReplies(int comment_id, int user_id); // 댓글과 대댓글 모두 삭제 (계층 삭제)
+    int getTotalCommentCountByBoardId(int board_id); // 게시글의 총 댓글 수 (대댓글 포함)
+    int getTopLevelCommentCountByBoardId(int board_id); // 게시글의 최상위 댓글 수 (대댓글 제외)
 }

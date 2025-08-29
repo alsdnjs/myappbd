@@ -118,4 +118,119 @@ public class BoardCommentController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
         }
     }
+    
+    // 대댓글 관련 엔드포인트
+    
+    // 대댓글 작성
+    @PostMapping("/{board_id}/reply")
+    public ResponseEntity<?> createReply(
+            @PathVariable int board_id,
+            @RequestParam int parent_id,
+            @RequestParam String comment_content,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        
+        System.out.println("[BoardCommentController] 🗨️ 대댓글 작성 요청 - boardId: " + board_id + ", parentId: " + parent_id);
+        
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+        
+        try {
+            boardCommentService.createReply(board_id, parent_id, comment_content, principal.getUserId());
+            System.out.println("[BoardCommentController] 🗨️ 대댓글 작성 성공 ✅");
+            return ResponseEntity.ok().body("대댓글이 성공적으로 작성되었습니다.");
+        } catch (Exception e) {
+            System.out.println("[BoardCommentController] 🗨️ 대댓글 작성 실패: " + e.getMessage());
+            e.printStackTrace();
+            return ResponseEntity.badRequest().body("대댓글 작성에 실패했습니다: " + e.getMessage());
+        }
+    }
+    
+    // 게시글의 모든 댓글과 대댓글을 계층 구조로 조회
+    @GetMapping("/{board_id}/hierarchy")
+    public ResponseEntity<List<BoardCommentVO>> getCommentsWithRepliesByBoardId(@PathVariable int board_id) {
+        try {
+            List<BoardCommentVO> comments = boardCommentService.getCommentsWithRepliesByBoardId(board_id);
+            return ResponseEntity.ok(comments);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    // 대댓글 수정
+    @PutMapping("/reply/{comment_id}")
+    public ResponseEntity<?> updateReply(
+            @PathVariable int comment_id,
+            @RequestParam String comment_content,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+        
+        try {
+            boardCommentService.updateReply(comment_id, comment_content, principal.getUserId());
+            return ResponseEntity.ok().body("대댓글이 성공적으로 수정되었습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("대댓글 수정에 실패했습니다: " + e.getMessage());
+        }
+    }
+    
+    // 대댓글 삭제
+    @DeleteMapping("/reply/{comment_id}")
+    public ResponseEntity<?> deleteReply(
+            @PathVariable int comment_id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+        
+        try {
+            boardCommentService.deleteReply(comment_id, principal.getUserId());
+            return ResponseEntity.ok().body("대댓글이 성공적으로 삭제되었습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("대댓글 삭제에 실패했습니다: " + e.getMessage());
+        }
+    }
+    
+    // 댓글과 대댓글 모두 삭제 (계층 삭제)
+    @DeleteMapping("/{comment_id}/with-replies")
+    public ResponseEntity<?> deleteCommentWithReplies(
+            @PathVariable int comment_id,
+            @AuthenticationPrincipal UserPrincipal principal) {
+        
+        if (principal == null) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("로그인이 필요합니다.");
+        }
+        
+        try {
+            boardCommentService.deleteCommentWithReplies(comment_id, principal.getUserId());
+            return ResponseEntity.ok().body("댓글과 대댓글이 모두 삭제되었습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("댓글 삭제에 실패했습니다: " + e.getMessage());
+        }
+    }
+    
+    // 게시글의 총 댓글 수 (대댓글 포함)
+    @GetMapping("/{board_id}/total-count")
+    public ResponseEntity<Map<String, Integer>> getTotalCommentCountByBoardId(@PathVariable int board_id) {
+        try {
+            int count = boardCommentService.getTotalCommentCountByBoardId(board_id);
+            return ResponseEntity.ok(Map.of("totalCommentCount", count));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
+    
+    // 게시글의 최상위 댓글 수 (대댓글 제외)
+    @GetMapping("/{board_id}/top-level-count")
+    public ResponseEntity<Map<String, Integer>> getTopLevelCommentCountByBoardId(@PathVariable int board_id) {
+        try {
+            int count = boardCommentService.getTopLevelCommentCountByBoardId(board_id);
+            return ResponseEntity.ok(Map.of("topLevelCommentCount", count));
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).build();
+        }
+    }
 }
