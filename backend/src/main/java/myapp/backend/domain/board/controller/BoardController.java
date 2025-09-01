@@ -117,13 +117,13 @@ public class BoardController {
     
     // 개별 글 조회
     @GetMapping("board/{board_id}")
-    public BoardVO getBoard(@PathVariable int board_id) {
+    public BoardVO getBoard(@PathVariable("board_id") int board_id) {
         return boardService.getBoard(board_id);
     }
     
     // 조회수 증가 (별도 API)
     @PostMapping("board/{board_id}/view")
-    public void increaseViewCount(@PathVariable int board_id) {
+    public void increaseViewCount(@PathVariable("board_id") int board_id) {
         boardService.increaseViewCount(board_id);
     }
 
@@ -131,7 +131,7 @@ public class BoardController {
     @GetMapping("board/detail/{board_id}")
     public BoardVO getBoardDetail(
             @PathVariable("board_id") int board_id,
-            @RequestParam(required = false) Integer currentUserId) {
+            @RequestParam(value = "currentUserId", required = false) Integer currentUserId) {
         return boardService.getBoardDetail(board_id, currentUserId);
     }
 
@@ -184,7 +184,7 @@ public class BoardController {
     
     // 이미지 조회 API (인증 없이 접근 가능)
     @GetMapping("/image/{filename}")
-    public ResponseEntity<Resource> getImage(@PathVariable String filename) {
+    public ResponseEntity<Resource> getImage(@PathVariable("filename") String filename) {
         try {
             // 이미지 파일 경로 설정 (여러 경로 시도)
             String[] possiblePaths = {

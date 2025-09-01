@@ -190,5 +190,6 @@
         LEFT JOIN board_likes bl ON b.board_id = bl.board_id AND bl.user_id = #{userId}
         ORDER BY b.uploaded_at DESC
     </select>
+
     
 </mapper> 

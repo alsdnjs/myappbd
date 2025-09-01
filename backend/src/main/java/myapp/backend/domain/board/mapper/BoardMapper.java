@@ -3,6 +3,7 @@ package myapp.backend.domain.board.mapper;
 import java.util.List;
 
 import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
 
 import myapp.backend.domain.board.vo.BoardVO;
 import myapp.backend.domain.board.vo.ImageVO;
@@ -20,7 +21,7 @@ public interface BoardMapper {
     
     // 이미지 관련 메서드
     int insertImage(ImageVO imageVO); // 이미지 정보 저장
-    void updateBoardImageId(int board_id, int image_id); // 게시글의 image_id 업데이트
+    void updateBoardImageId(@Param("board_id") int board_id, @Param("image_id") int image_id); // 게시글의 image_id 업데이트
     void deleteImage(int image_id); // 이미지 삭제
     
 
@@ -36,5 +37,6 @@ public interface BoardMapper {
     
     // 인증된 사용자를 위한 게시글 목록 조회 (좋아요 상태 포함)
     List<BoardVO> getBoardListWithLikeStatus(int userId);
+
 
 }

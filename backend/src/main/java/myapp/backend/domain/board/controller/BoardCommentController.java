@@ -23,9 +23,9 @@ public class BoardCommentController {
     // 댓글 작성
     @PostMapping("/{board_id}")
     public ResponseEntity<?> createComment(
-            @PathVariable int board_id,
-            @RequestParam String comment_content,
-            @RequestParam(required = false) Integer parent_id,
+            @PathVariable("board_id") int board_id,
+            @RequestParam("comment_content") String comment_content,
+            @RequestParam(value = "parent_id", required = false) Integer parent_id,
             @AuthenticationPrincipal UserPrincipal principal) {
         
         System.out.println("[BoardCommentController] 🗨️ 댓글 작성 요청 - boardId: " + board_id);
@@ -51,7 +51,7 @@ public class BoardCommentController {
     
     // 게시글의 댓글 목록 조회 (최상위 댓글만)
     @GetMapping("/{board_id}")
-    public ResponseEntity<List<BoardCommentVO>> getCommentsByBoardId(@PathVariable int board_id) {
+    public ResponseEntity<List<BoardCommentVO>> getCommentsByBoardId(@PathVariable("board_id") int board_id) {
         try {
             List<BoardCommentVO> comments = boardCommentService.getCommentsByBoardId(board_id);
             return ResponseEntity.ok(comments);
@@ -62,7 +62,7 @@ public class BoardCommentController {
     
     // 특정 댓글의 대댓글 목록 조회
     @GetMapping("/replies/{parent_id}")
-    public ResponseEntity<List<BoardCommentVO>> getRepliesByParentId(@PathVariable int parent_id) {
+    public ResponseEntity<List<BoardCommentVO>> getRepliesByParentId(@PathVariable("parent_id") int parent_id) {
         try {
             List<BoardCommentVO> replies = boardCommentService.getRepliesByParentId(parent_id);
             return ResponseEntity.ok(replies);
@@ -74,8 +74,8 @@ public class BoardCommentController {
     // 댓글 수정
     @PutMapping("/{comment_id}")
     public ResponseEntity<?> updateComment(
-            @PathVariable int comment_id,
-            @RequestParam String comment_content,
+            @PathVariable("comment_id") int comment_id,
+            @RequestParam("comment_content") String comment_content,
             @AuthenticationPrincipal UserPrincipal principal) {
         
         if (principal == null) {
@@ -93,7 +93,7 @@ public class BoardCommentController {
     // 댓글 삭제
     @DeleteMapping("/{comment_id}")
     public ResponseEntity<?> deleteComment(
-            @PathVariable int comment_id,
+            @PathVariable("comment_id") int comment_id,
             @AuthenticationPrincipal UserPrincipal principal) {
         
         if (principal == null) {
@@ -110,7 +110,7 @@ public class BoardCommentController {
     
     // 게시글의 총 댓글 수 조회
     @GetMapping("/{board_id}/count")
-    public ResponseEntity<Map<String, Integer>> getCommentCountByBoardId(@PathVariable int board_id) {
+    public ResponseEntity<Map<String, Integer>> getCommentCountByBoardId(@PathVariable("board_id") int board_id) {
         try {
             int count = boardCommentService.getCommentCountByBoardId(board_id);
             return ResponseEntity.ok(Map.of("commentCount", count));
@@ -124,9 +124,9 @@ public class BoardCommentController {
     // 대댓글 작성
     @PostMapping("/{board_id}/reply")
     public ResponseEntity<?> createReply(
-            @PathVariable int board_id,
-            @RequestParam int parent_id,
-            @RequestParam String comment_content,
+            @PathVariable("board_id") int board_id,
+            @RequestParam("parent_id") int parent_id,
+            @RequestParam("comment_content") String comment_content,
             @AuthenticationPrincipal UserPrincipal principal) {
         
         System.out.println("[BoardCommentController] 🗨️ 대댓글 작성 요청 - boardId: " + board_id + ", parentId: " + parent_id);
@@ -148,7 +148,7 @@ public class BoardCommentController {
     
     // 게시글의 모든 댓글과 대댓글을 계층 구조로 조회
     @GetMapping("/{board_id}/hierarchy")
-    public ResponseEntity<List<BoardCommentVO>> getCommentsWithRepliesByBoardId(@PathVariable int board_id) {
+    public ResponseEntity<List<BoardCommentVO>> getCommentsWithRepliesByBoardId(@PathVariable("board_id") int board_id) {
         try {
             List<BoardCommentVO> comments = boardCommentService.getCommentsWithRepliesByBoardId(board_id);
             return ResponseEntity.ok(comments);
@@ -160,8 +160,8 @@ public class BoardCommentController {
     // 대댓글 수정
     @PutMapping("/reply/{comment_id}")
     public ResponseEntity<?> updateReply(
-            @PathVariable int comment_id,
-            @RequestParam String comment_content,
+            @PathVariable("comment_id") int comment_id,
+            @RequestParam("comment_content") String comment_content,
             @AuthenticationPrincipal UserPrincipal principal) {
         
         if (principal == null) {
@@ -179,7 +179,7 @@ public class BoardCommentController {
     // 대댓글 삭제
     @DeleteMapping("/reply/{comment_id}")
     public ResponseEntity<?> deleteReply(
-            @PathVariable int comment_id,
+            @PathVariable("comment_id") int comment_id,
             @AuthenticationPrincipal UserPrincipal principal) {
         
         if (principal == null) {
@@ -197,7 +197,7 @@ public class BoardCommentController {
     // 댓글과 대댓글 모두 삭제 (계층 삭제)
     @DeleteMapping("/{comment_id}/with-replies")
     public ResponseEntity<?> deleteCommentWithReplies(
-            @PathVariable int comment_id,
+            @PathVariable("comment_id") int comment_id,
             @AuthenticationPrincipal UserPrincipal principal) {
         
         if (principal == null) {
@@ -214,7 +214,7 @@ public class BoardCommentController {
     
     // 게시글의 총 댓글 수 (대댓글 포함)
     @GetMapping("/{board_id}/total-count")
-    public ResponseEntity<Map<String, Integer>> getTotalCommentCountByBoardId(@PathVariable int board_id) {
+    public ResponseEntity<Map<String, Integer>> getTotalCommentCountByBoardId(@PathVariable("board_id") int board_id) {
         try {
             int count = boardCommentService.getTotalCommentCountByBoardId(board_id);
             return ResponseEntity.ok(Map.of("totalCommentCount", count));
@@ -225,7 +225,7 @@ public class BoardCommentController {
     
     // 게시글의 최상위 댓글 수 (대댓글 제외)
     @GetMapping("/{board_id}/top-level-count")
-    public ResponseEntity<Map<String, Integer>> getTopLevelCommentCountByBoardId(@PathVariable int board_id) {
+    public ResponseEntity<Map<String, Integer>> getTopLevelCommentCountByBoardId(@PathVariable("board_id") int board_id) {
         try {
             int count = boardCommentService.getTopLevelCommentCountByBoardId(board_id);
             return ResponseEntity.ok(Map.of("topLevelCommentCount", count));

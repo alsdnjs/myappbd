@@ -60,6 +60,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.POST, "/api/board/**").authenticated()
                 .requestMatchers(HttpMethod.PUT, "/api/board/**").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/board/**").authenticated()
+                
+                // 관리자 API: 인증 필요
+                .requestMatchers("/api/admin/**").authenticated()
+                
                 // 그 외 모든 요청 인증 필요
                 .anyRequest().authenticated()
             )

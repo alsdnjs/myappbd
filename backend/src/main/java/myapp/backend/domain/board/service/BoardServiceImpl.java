@@ -397,6 +397,7 @@ public class BoardServiceImpl implements BoardService {
         
         return boardList;
     }
+
     
     // 이미지 파일들을 실제로 삭제하는 메서드
     private void deleteImageFiles(String imageUrl) {

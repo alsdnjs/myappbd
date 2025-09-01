@@ -23,4 +23,7 @@ public interface BoardService {
     
     // 인증된 사용자를 위한 게시글 목록 조회 (좋아요 상태 포함)
     List<BoardVO> getBoardListWithLikeStatus(int userId);
+    
+    // 관리자용 게시글 관리 메서드
+
 }
