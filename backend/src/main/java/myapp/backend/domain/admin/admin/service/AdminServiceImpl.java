@@ -7,18 +7,24 @@ import org.springframework.stereotype.Service;
 
 @Service
 public class AdminServiceImpl implements AdminService {
-
+    
     @Autowired
     private AdminMapper adminMapper;
-
+    
     @Override
-    public AdminVO getAdminInfo(int user_id) {
-        return adminMapper.getAdminInfo(user_id);
+    public AdminVO getAdminInfo(int userId) {
+        return adminMapper.getAdminInfo(userId);
     }
-
+    
     @Override
-    public boolean isAdmin(int user_id) {
-        return adminMapper.isAdmin(user_id);
+    public boolean isAdmin(int userId) {
+        return adminMapper.isAdmin(userId);
+    }
+    
+    @Override
+    public int getAdminIdByUserId(int userId) {
+        AdminVO admin = adminMapper.getAdminInfo(userId);
+        return admin != null ? admin.getAdmin_id() : 0;
     }
 }
 

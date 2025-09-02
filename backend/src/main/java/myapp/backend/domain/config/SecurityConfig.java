@@ -61,6 +61,10 @@ public class SecurityConfig {
                 .requestMatchers(HttpMethod.PUT, "/api/board/**").authenticated()
                 .requestMatchers(HttpMethod.DELETE, "/api/board/**").authenticated()
                 
+                // 공지사항 API: 조회는 허용, 관리자 기능은 인증 필요
+                .requestMatchers(HttpMethod.GET, "/api/notice/**").permitAll()  // 공지사항 조회는 누구나
+                .requestMatchers("/api/notice/**").authenticated()  // 공지사항 작성/수정/삭제는 인증 필요
+                
                 // 관리자 API: 인증 필요
                 .requestMatchers("/api/admin/**").authenticated()
                 
