@@ -23,13 +23,17 @@ public class NoticeServiceImpl implements NoticeService {
     
     @Override
     public NoticeVO getNoticeDetail(int notice_id) {
+        System.out.println("🔍 NoticeServiceImpl.getNoticeDetail 호출됨 - notice_id: " + notice_id);
+        
         NoticeVO notice = noticeMapper.getNoticeDetail(notice_id);
         if (notice == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "공지사항을 찾을 수 없습니다.");
         }
         
         // 조회수 증가
+        System.out.println("📊 조회수 증가 전: " + notice.getView_count());
         noticeMapper.increaseViewCount(notice_id);
+        System.out.println("📊 조회수 증가 완료");
         
         return notice;
     }
@@ -45,6 +49,10 @@ public class NoticeServiceImpl implements NoticeService {
         if (notice == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "공지사항을 찾을 수 없습니다.");
         }
+        
+        // 조회수 증가
+        noticeMapper.increaseViewCount(notice_id);
+        
         return notice;
     }
     
